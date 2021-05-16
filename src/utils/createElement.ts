@@ -4,7 +4,6 @@ function createElement<T extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[T] {
   const elem = document.createElement(tagname);
 
-  // eslint-disable-next-line guard-for-in
   for (const key in params) {
     const typedKey = key as keyof typeof params;
     (elem as any)[typedKey] = params[typedKey];

@@ -1,0 +1,33 @@
+name: ReleaseWorkflow
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  createSentryRelease:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup node ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run build
+      - run: VERSION=$(node -e "console.log(require('./package.json').version)") && echo "VERSION=${VERSION}" >> $GITHUB_ENV
+      - run: echo ${{ env.VERSION }}
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: bozdoz
+          SENTRY_PROJECT: tws
+        with:
+          environment: production
+          sourcemaps: './dist'
+          version: ${{ env.VERSION }}

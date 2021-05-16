@@ -24,8 +24,6 @@ describe('index', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // make sure require('./index') fires again
-    jest.resetModules();
 
     splash = document.createElement('div');
     splash.id = 'splash';
@@ -37,9 +35,10 @@ describe('index', () => {
     }
     document.body.append(splash);
 
-    // add js
-    // eslint-disable-next-line global-require
-    require('./index');
+    // re-add index file
+    jest.isolateModules(() => {
+      require('./index');
+    });
   });
 
   it('gives focus to splash on load', () => {

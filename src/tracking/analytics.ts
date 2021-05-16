@@ -1,38 +1,18 @@
-interface GTag {
-  (...args: any[]): void;
-}
+import loadScript from './loadScript';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare interface Window {
-  dataLayer: any[];
-  gtag: GTag;
-}
+window.dataLayer = window.dataLayer || [];
 
-const loadScript = (src: string) => {
-  const script = document.createElement('script');
-  const firstScript = document.getElementsByTagName('script')[0];
-  script.async = true;
-  script.src = src;
-  firstScript.parentNode!.insertBefore(script, firstScript);
+window.gtag = function gtag() {
+  // eslint-disable-next-line prefer-rest-params
+  window.dataLayer.push(arguments);
 };
 
+window.gtag('js', new Date());
+
+window.gtag('config', 'UA-73887811-5');
+
 if (process.env.NODE_ENV === 'production') {
-  // breaks down the snippet given by google analytics
   loadScript('https://www.googletagmanager.com/gtag/js?id=UA-73887811-5');
-
-  window.dataLayer = window.dataLayer || [];
-
-  // eslint-disable-next-line no-inner-declarations
-  function gtag() {
-    // eslint-disable-next-line prefer-rest-params
-    window.dataLayer.push(arguments);
-  }
-
-  window.gtag = gtag;
-
-  window.gtag('js', new Date());
-
-  window.gtag('config', 'UA-73887811-5');
 } else {
   // eslint-disable-next-line no-console
   window.gtag = console.log;

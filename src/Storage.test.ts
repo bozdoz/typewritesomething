@@ -13,6 +13,10 @@ describe('Storage', () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('gets storage info', () => {
     const info = Storage.getInfo();
 
@@ -72,6 +76,13 @@ describe('Storage', () => {
     expect(item?.name).toBe(`Writing #1`);
   });
 
+  it('returns null for getDataById if does not exist', () => {
+    const [item, index] = Storage.getDataById('nada');
+
+    expect(item).toBeNull();
+    expect(index).toBe(-1);
+  });
+
   it('can get saved data', () => {
     const str = '[JSON data]';
     Storage.create(str);
@@ -79,6 +90,12 @@ describe('Storage', () => {
     const data = Storage.get('tws-1');
 
     expect(data).toBe(str);
+  });
+
+  it('returns null for get if does not exist', () => {
+    const data = Storage.get('nada');
+
+    expect(data).toBeNull();
   });
 
   it('can update name of saved data', () => {
@@ -93,7 +110,8 @@ describe('Storage', () => {
   });
 
   it('can delete saved data', () => {
-    jest.spyOn(localStorage, 'removeItem');
+    // eslint-disable-next-line no-proto
+    jest.spyOn(window.localStorage.__proto__, 'removeItem');
 
     const str = '[JSON data]';
     Storage.create(str);
@@ -108,7 +126,20 @@ describe('Storage', () => {
     expect(info.data).toHaveLength(0);
     expect(info.numCreated).toBe(1);
     // clears saved item
-    expect(localStorage.getItem('tws-1')).not.toBeTruthy();
+    expect(localStorage.getItem('tws-1')).toBeFalsy();
+
+    expect(localStorage.removeItem).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not throw when does not exist', () => {
+    // eslint-disable-next-line no-proto
+    jest.spyOn(window.localStorage.__proto__, 'removeItem');
+
+    expect(() => {
+      Storage.deleteById('tws-101');
+    }).not.toThrow();
+
+    expect(localStorage.removeItem).toHaveBeenCalledTimes(0);
   });
 
   it('returns id from create method', () => {
@@ -116,5 +147,13 @@ describe('Storage', () => {
     const id = Storage.create(str);
 
     expect(id).toBe('tws-1');
+  });
+
+  it('can update last loaded writing', () => {
+    const id = Storage.create('temp');
+    const str = '[JSON data]';
+    Storage.updateWriting(id, str);
+
+    expect(Storage.get(id)).toBe(str);
   });
 });

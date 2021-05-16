@@ -7,7 +7,7 @@ interface Exported {
   writings: string[];
 }
 
-export const exportSaved = () => {
+export const exportSaved = (): void => {
   const output: Exported = {
     data: Storage.getInfo().data,
     writings: [],
@@ -27,9 +27,13 @@ export const exportSaved = () => {
   const fileData = JSONToFileString(output);
 
   downloadFile('tws.json', fileData);
+
+  window.gtag('event', 'menu:view-saved:export', {
+    event_category: 'menu',
+  });
 };
 
-export const importSaved = async () => {
+export const importSaved = async (): Promise<void> => {
   // file prompt
   const contents = await getFileContents();
 

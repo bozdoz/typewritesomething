@@ -98,6 +98,7 @@ describe('Menu', () => {
         y: 10 + positionBuffer,
       })
     );
+    expect(window.gtag).toHaveBeenCalled();
   });
 
   it('should have focus after opening', () => {

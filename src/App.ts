@@ -75,13 +75,11 @@ class App {
 
     const method = onoff === 'on' ? 'addEventListener' : 'removeEventListener';
 
-    // eslint-disable-next-line no-restricted-syntax, guard-for-in
     for (const key in documentEvents) {
       const fnc = documentEvents[key];
       eventTarget[method](key, fnc);
     }
 
-    // eslint-disable-next-line no-restricted-syntax, guard-for-in
     for (const key in cursorEvents) {
       const fnc = cursorEvents[key];
       textInput[method](key, fnc);

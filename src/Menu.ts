@@ -82,7 +82,6 @@ class Menu {
       contextmenu: this.handleContextMenu,
     };
 
-    // eslint-disable-next-line guard-for-in
     for (const key in events) {
       eventTarget[method](key, events[key]);
     }
