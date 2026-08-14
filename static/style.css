@@ -134,6 +134,10 @@ canvas {
   bottom: 0;
 }
 
+#cursor-canvas {
+  touch-action: none;
+}
+
 #text-input {
   color: transparent;
   background-color: transparent;

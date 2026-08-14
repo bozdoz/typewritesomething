@@ -1,8 +1,9 @@
-import Vector from './utils/Vector';
 import { Cursor } from './Cursor';
 import { Character } from './Character';
 import { container, cursorCtx, textCtx } from './helpers/getElements';
 import debounce from './utils/debounce';
+import Vector from './utils/Vector';
+import Viewport from './utils/Viewport';
 import positionElem from './utils/positionElem';
 
 const FONT_SIZE = 26;
@@ -15,13 +16,18 @@ const letterSize = parseInt(
 );
 
 interface TypeWriterClass {
-  canvasOffset: Vector;
-  containerScale: number;
+  viewport: Viewport;
   chars: Character[];
   addCharacter(_chars: string): void;
   redraw(): void;
+  render(): void;
+  applyViewportTransform(ctx: CanvasRenderingContext2D): void;
   resetCanvases(): void;
   reposition(vec?: Vector | UIEvent): void;
+  panBy(vec: Vector): void;
+  zoomAt(point: Vector, factor: number): void;
+  setScaleAt(point: Vector, worldPoint: Vector, scale: number): void;
+  screenToWorld(point: Vector): Vector;
   debouncedReposition(this: unknown, vec?: Vector | UIEvent): void;
   reset(): void;
   cursor: Cursor;
@@ -32,13 +38,11 @@ interface TypeWriterClass {
 export class TypeWriter implements TypeWriterClass {
   static _instance: TypeWriterClass;
 
-  canvasOffset = new Vector(0, 0);
-
-  containerScale = 1;
+  viewport = new Viewport();
 
   chars: Character[] = [];
 
-  cursor = new Cursor();
+  cursor = new Cursor(this.viewport);
 
   constructor() {
     if (TypeWriter._instance) {
@@ -54,10 +58,12 @@ export class TypeWriter implements TypeWriterClass {
   addCharacter = (_chars: string, _x?: number, _y?: number): void => {
     // manually set position and update cursor
     if (_x !== undefined && _y !== undefined) {
-      this.chars.push(new Character(this, _chars, _x, _y));
+      this.chars.push(new Character(_chars, _x, _y));
       this.cursor.update(new Vector(_x, _y));
+      this.render();
       return;
     }
+
     // iterate characters and move cursor right
     for (let i = 0, len = _chars.length; i < len; i += 1) {
       const {
@@ -65,13 +71,29 @@ export class TypeWriter implements TypeWriterClass {
       } = this.cursor;
       const char = _chars[i];
 
-      this.chars.push(new Character(this, char, x, y));
+      this.chars.push(new Character(char, x, y));
       this.cursor.moveright();
     }
+
+    this.render();
   };
 
   redraw = (): void => {
     this.chars.forEach((char) => char.draw());
+  };
+
+  applyViewportTransform = (ctx: CanvasRenderingContext2D): void => {
+    const { devicePixelRatio = 1 } = window;
+    const { offset, scale } = this.viewport;
+
+    ctx.setTransform(
+      devicePixelRatio * scale,
+      0,
+      0,
+      devicePixelRatio * scale,
+      devicePixelRatio * offset.x,
+      devicePixelRatio * offset.y
+    );
   };
 
   resetCanvases = (): void => {
@@ -79,57 +101,83 @@ export class TypeWriter implements TypeWriterClass {
       const { canvas } = ctx;
       const { devicePixelRatio = 1, innerWidth, innerHeight } = window;
 
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-
       canvas.width = innerWidth * devicePixelRatio;
       canvas.height = innerHeight * devicePixelRatio;
       canvas.style.width = `${innerWidth}px`;
       canvas.style.height = `${innerHeight}px`;
+    });
 
-      ctx.scale(devicePixelRatio, devicePixelRatio);
+    this.render();
+  };
 
+  render = (): void => {
+    [textCtx, cursorCtx].forEach((ctx) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      this.applyViewportTransform(ctx);
       ctx.globalAlpha = GLOBAL_ALPHA;
     });
 
-    // reset contexts, because resizing wipes them
     textCtx.font = `${letterSize}px Special Elite, serif`;
     textCtx.textBaseline = 'top';
     textCtx.fillStyle = TEXT_COLOR;
 
     cursorCtx.fillStyle = CURSOR_COLOR;
-    cursorCtx.scale(this.containerScale, this.containerScale);
+
+    this.redraw();
+    this.cursor.positionInput();
+    this.cursor.draw();
   };
 
   /**
-   * offset characters for given x/y
-   * useful for moving/dragging
-   * useful for redrawing (b/c needs resetting)
+   * Pan the viewport by a screen-space vector.
+   */
+  panBy = (vec: Vector): void => {
+    this.viewport.panBy(vec);
+    this.render();
+  };
+
+  /**
+   * Zoom around a screen-space point while keeping that point anchored.
+   */
+  zoomAt = (point: Vector, factor: number): void => {
+    this.viewport.zoomAt(point, factor);
+    this.render();
+  };
+
+  setScaleAt = (point: Vector, worldPoint: Vector, scale: number): void => {
+    this.viewport.setScaleAtWorld(point, worldPoint, scale);
+    this.render();
+  };
+
+  screenToWorld = (point: Vector): Vector => this.viewport.screenToWorld(point);
+
+  /**
+   * Re-render after panning or resizing. A Vector is interpreted as a
+   * screen-space pan; a UIEvent indicates that the canvases need resizing.
    */
   reposition = (vec?: Vector | UIEvent): void => {
     if (vec instanceof Vector) {
-      this.canvasOffset._add(vec);
+      this.viewport.panBy(vec);
     }
 
     positionElem(container, { x: 0, y: 0 });
 
     this.resetCanvases();
-    this.redraw();
   };
 
   debouncedReposition = debounce(this.reposition, 100);
 
   /**
-   * back to original blank canvas
+   * Back to the original blank canvas and default viewport.
    */
   reset = () => {
     this.chars = [];
+    this.viewport.reset();
     this.cursor.reset();
-    this.canvasOffset = new Vector(0, 0);
-    this.containerScale = 1;
     container.setAttribute('style', '');
 
     this.reposition();
-    this.cursor.draw();
   };
 
   export() {
