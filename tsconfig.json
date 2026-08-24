@@ -7,19 +7,28 @@
     "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "lib": ["ES2019", "dom"],
+    "lib": [
+      "ES2019",
+      "dom"
+    ],
     "module": "es2015",
     "moduleResolution": "node",
     "noImplicitAny": true,
-    "noImplicitUseStrict": true,
     "noUnusedLocals": true,
     "outDir": "dist",
     "pretty": true,
     "rootDir": ".",
     "strict": true,
     "target": "es5",
-    "types": ["jest", "node"]
+    "types": [
+      "jest",
+      "node"
+    ]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
