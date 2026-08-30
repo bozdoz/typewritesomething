@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "DOM"]
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-process-globals"]
+    }
+  }
+}

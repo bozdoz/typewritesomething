@@ -1,21 +1,21 @@
-import { cursorCtx, textInput } from './helpers/getElements';
-import positionElem from './utils/positionElem';
-import Vector from './utils/Vector';
+import { cursorCtx, textInput } from "./helpers/getElements";
+import positionElem from "./utils/positionElem";
+import Vector from "./utils/Vector";
 
 const FONT_SIZE = 26;
 const containerScale = 1;
 const GLOBAL_ALPHA = 0.72;
 const letterSize = parseInt(
-  String(Math.min(FONT_SIZE, window.innerWidth / 17)),
-  10
+  String(Math.min(FONT_SIZE, globalThis.innerWidth / 17)),
+  10,
 );
 const letterWidth = (letterSize * 12) / 20;
 const lineHeight = letterSize + 8;
 const cursorWidth = letterWidth;
 const cursorHeight = lineHeight - 6;
 const paddingVec = (function getPaddingVec() {
-  const _x = Math.min(100, window.innerWidth / 8);
-  const _y = Math.min(_x, window.innerHeight / 8);
+  const _x = Math.min(100, globalThis.innerWidth / 8);
+  const _y = Math.min(_x, globalThis.innerHeight / 8);
   return new Vector(_x, _y);
 })();
 
@@ -55,8 +55,8 @@ export class Cursor {
   update = (vec: Vector) => {
     // move the "hidden" input
     positionElem(textInput, {
-      x: Math.min(vec.x, window.innerWidth - cursorWidth),
-      y: Math.min(vec.y, window.innerHeight),
+      x: Math.min(vec.x, globalThis.innerWidth - cursorWidth),
+      y: Math.min(vec.y, globalThis.innerHeight),
     });
 
     // clear the canvas
@@ -78,12 +78,12 @@ export class Cursor {
   draw = () => {
     this._draw();
 
-    window.clearTimeout(this._cursorTimeout!);
+    globalThis.clearTimeout(this._cursorTimeout!);
     if (this._raf) {
-      window.cancelAnimationFrame(this._raf);
+      globalThis.cancelAnimationFrame(this._raf);
     }
     this._opacity = GLOBAL_ALPHA;
-    this._cursorTimeout = window.setTimeout(this.fadeOut.bind(this), 2200);
+    this._cursorTimeout = globalThis.setTimeout(this.fadeOut.bind(this), 2200);
   };
 
   nudge = (vec: Vector) => {
@@ -137,12 +137,12 @@ export class Cursor {
       cursorCtx.globalAlpha = this._opacity;
       this._draw();
       cursorCtx.restore();
-      this._raf = window.requestAnimationFrame(this._fadeanim.bind(this));
+      this._raf = globalThis.requestAnimationFrame(this._fadeanim.bind(this));
     }
   };
 
   /** mapping for keys that move cursor; disallow ridiculous Android 'Process' */
-  navButtons: Record<string, () => void> & Partial<Record<'Process', never>> = {
+  navButtons: Record<string, () => void> & Partial<Record<"Process", never>> = {
     Backspace: this.moveleft.bind(this),
     Tab: this.addtab.bind(this),
     ArrowLeft: this.moveleft.bind(this),

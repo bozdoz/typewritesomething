@@ -1,58 +1,58 @@
-import Menu from './Menu';
-import * as Storage from './Storage';
-import Dialog from './Dialog';
-import SavedList from './SavedList';
+import Menu from "./Menu";
+import * as Storage from "./Storage";
+import Dialog from "./Dialog";
+import SavedList from "./SavedList";
 
 const menuEvent = (event: string) => {
-  window.gtag('event', event, {
-    event_category: 'menu',
+  globalThis.gtag("event", event, {
+    event_category: "menu",
   });
 };
 
-const getAppMenu = (app: import('./App').default) => {
+const getAppMenu = (app: import("./App").default) => {
   const menu = new Menu();
 
   let lastLoadedId: ReturnType<typeof Storage.create>;
 
-  menu.addMenuItem('📃 &nbsp; New', {
+  menu.addMenuItem("📃 &nbsp; New", {
     callback: () => {
-      lastLoadedId = '';
+      lastLoadedId = "";
       menu.closeMenu();
       app.reset();
-      menuEvent('menu:new');
+      menuEvent("menu:new");
     },
   });
 
-  menu.addMenuItem('💾 &nbsp; Save', {
+  menu.addMenuItem("💾 &nbsp; Save", {
     // TODO: maybe should export all of these callbacks for testing
     callback: () => {
       // save and prompt edit modal
       const exported = app.typewriter.export();
 
-      if (exported === '[]') {
+      if (exported === "[]") {
         // empty should not be saved
         menu.closeMenu();
-        menuEvent('menu:save:empty');
+        menuEvent("menu:save:empty");
         return;
       }
 
       const id = lastLoadedId || Storage.create(exported);
-      let submit = 'Save Writing';
-      let cancel = 'Delete';
+      let submit = "Save Writing";
+      let cancel = "Delete";
 
       if (lastLoadedId) {
-        submit = 'Update Writing';
-        cancel = 'Discard Changes';
+        submit = "Update Writing";
+        cancel = "Discard Changes";
       }
 
       const [item] = Storage.getDataById(id);
 
       menu.closeMenu();
 
-      new Dialog('Save', { submit, cancel })
-        .addInput('Name', {
-          type: 'text',
-          name: 'name',
+      new Dialog("Save", { submit, cancel })
+        .addInput("Name", {
+          type: "text",
+          name: "name",
           value: item?.name,
         })
         .onSubmit(({ name }) => {
@@ -70,7 +70,7 @@ const getAppMenu = (app: import('./App').default) => {
             name,
           });
 
-          menuEvent('menu:save:success');
+          menuEvent("menu:save:success");
 
           return true;
         })
@@ -80,19 +80,19 @@ const getAppMenu = (app: import('./App').default) => {
             // newly created should delete the writing
             Storage.deleteById(id);
           }
-          menuEvent('menu:save:cancel');
+          menuEvent("menu:save:cancel");
         })
         .open();
     },
   });
 
-  menu.addMenuItem('👀 &nbsp; View Saved', {
+  menu.addMenuItem("👀 &nbsp; View Saved", {
     callback: () => {
       menu.closeMenu();
 
-      menuEvent('menu:view-saved');
+      menuEvent("menu:view-saved");
 
-      const savedList = new SavedList('Saved Writings');
+      const savedList = new SavedList("Saved Writings");
       savedList
         .onClick(({ key }) => {
           const writing = Storage.get(key);
@@ -101,11 +101,11 @@ const getAppMenu = (app: import('./App').default) => {
             app.typewriter.import(writing);
             // handle save as if it may be update instead
             lastLoadedId = key;
-            menuEvent('menu:view-saved:view');
+            menuEvent("menu:view-saved:view");
           } else {
             // empty writings got no reason to live
             Storage.deleteById(key);
-            menuEvent('menu:view-saved:delete-empty');
+            menuEvent("menu:view-saved:delete-empty");
           }
         })
         .onDelete(({ key }) => {
@@ -113,13 +113,13 @@ const getAppMenu = (app: import('./App').default) => {
           // refresh list
           savedList.refreshList();
 
-          menuEvent('menu:view-saved:delete');
+          menuEvent("menu:view-saved:delete");
         })
         .onEdit(({ name, key }) => {
-          new Dialog('Update', { submit: 'Update Writing' })
-            .addInput('Name', {
-              type: 'text',
-              name: 'name',
+          new Dialog("Update", { submit: "Update Writing" })
+            .addInput("Name", {
+              type: "text",
+              name: "name",
               value: name,
             })
             .onSubmit<{ name: string }>(({ name: newName }) => {
@@ -134,7 +134,7 @@ const getAppMenu = (app: import('./App').default) => {
 
               savedList.refreshList();
 
-              menuEvent('menu:view-saved:edit');
+              menuEvent("menu:view-saved:edit");
 
               return true;
             })
@@ -148,17 +148,17 @@ const getAppMenu = (app: import('./App').default) => {
     },
   });
 
-  menu.addMenuItem('📋 &nbsp; Paste Text', {
+  menu.addMenuItem("📋 &nbsp; Paste Text", {
     callback: () => {
-      const pasteDialog = new Dialog('Paste Text');
+      const pasteDialog = new Dialog("Paste Text");
 
       menu.closeMenu();
 
-      menuEvent('menu:paste-text');
+      menuEvent("menu:paste-text");
 
       pasteDialog
-        .addTextArea('Text', {
-          name: 'content',
+        .addTextArea("Text", {
+          name: "content",
         })
         .onSubmit<{ content: string }>(({ content }) => {
           const lines = content.split(/[\r\n]/);
@@ -178,12 +178,12 @@ const getAppMenu = (app: import('./App').default) => {
 
   menu.addDivider();
 
-  menu.addMenuItem('🙋‍♀️ &nbsp; App Feedback', {
-    href: 'https://github.com/bozdoz/typewritesomething/issues/new',
+  menu.addMenuItem("🙋‍♀️ &nbsp; App Feedback", {
+    href: "https://github.com/bozdoz/typewritesomething/issues/new",
   });
 
-  menu.addMenuItem('🥰 &nbsp; Sponsor Me', {
-    href: 'https://www.paypal.com/paypalme/bozdoz',
+  menu.addMenuItem("🥰 &nbsp; Sponsor Me", {
+    href: "https://www.paypal.com/paypalme/bozdoz",
   });
 
   return menu;

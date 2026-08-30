@@ -1,4 +1,4 @@
-import { Howl } from 'howler';
+import { Howl } from "howler";
 
 interface MultiAudio {
   play(): void;
@@ -14,7 +14,7 @@ interface MultiAudio {
 const MultiAudio = function multiAudio(
   this: MultiAudio,
   src: string,
-  instances = 5
+  instances = 5,
 ) {
   const output: Howl[] = [];
 
@@ -28,6 +28,7 @@ const MultiAudio = function multiAudio(
     const audio = output[(current += 1) % instances];
     audio.play();
   };
+  // deno-lint-ignore no-explicit-any
 } as any as { new (src: string, instances: number): MultiAudio };
 
 export default MultiAudio;

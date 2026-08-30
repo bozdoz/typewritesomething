@@ -1,26 +1,26 @@
-import createElement from './utils/createElement';
-import * as Storage from './Storage';
-import prettyDate from './utils/prettyDate';
-import { exportSaved, importSaved } from './utils/importExportSaved';
+import createElement from "./utils/createElement";
+import * as Storage from "./Storage";
+import prettyDate from "./utils/prettyDate";
+import { exportSaved, importSaved } from "./utils/importExportSaved";
 
 // TODO: add search
 // TODO: add cancel button
 class SavedList {
   // TODO: might need to separate these backdrops into a new class
-  backdrop = createElement('div', {
-    className: 'backdrop dialog-backdrop',
+  backdrop = createElement("div", {
+    className: "backdrop dialog-backdrop",
   });
 
-  dialog = createElement('div', {
-    className: 'popup dialog saved-list',
+  dialog = createElement("div", {
+    className: "popup dialog saved-list",
   });
 
-  dialogBody = createElement('div', {
-    className: 'dialog-body',
+  dialogBody = createElement("div", {
+    className: "dialog-body",
   });
 
-  dialogFooter = createElement('footer', {
-    className: 'dialog-footer',
+  dialogFooter = createElement("footer", {
+    className: "dialog-footer",
   });
 
   exportButton: HTMLButtonElement;
@@ -37,37 +37,37 @@ class SavedList {
 
   // TODO: might be able to extend from Dialog.ts
   constructor(title: string) {
-    this.dialog.setAttribute('role', 'dialog');
+    this.dialog.setAttribute("role", "dialog");
 
     this.dialog.appendChild(
-      createElement('header', {
-        className: 'dialog-header',
+      createElement("header", {
+        className: "dialog-header",
         innerHTML: title,
-      })
+      }),
     );
 
-    this.backdrop.addEventListener('click', ({ target }) => {
+    this.backdrop.addEventListener("click", ({ target }) => {
       if (target === this.backdrop) {
         this.close();
       }
     });
 
     // add action buttons to footer
-    this.exportButton = createElement('button', {
-      className: 'button',
-      type: 'button',
-      innerHTML: 'Export',
+    this.exportButton = createElement("button", {
+      className: "button",
+      type: "button",
+      innerHTML: "Export",
       onclick: exportSaved,
     });
 
-    this.importButton = createElement('button', {
-      className: 'button',
-      type: 'button',
-      innerHTML: 'import',
+    this.importButton = createElement("button", {
+      className: "button",
+      type: "button",
+      innerHTML: "import",
       onclick: async () => {
         try {
           await importSaved();
-        } catch (e) {
+        } catch (_) {
           // not sure
         } finally {
           this.refreshList();
@@ -75,10 +75,10 @@ class SavedList {
       },
     });
 
-    const closeButton = createElement('button', {
-      className: 'button',
-      type: 'button',
-      innerHTML: 'Close',
+    const closeButton = createElement("button", {
+      className: "button",
+      type: "button",
+      innerHTML: "Close",
       onclick: this.close.bind(this),
     });
 
@@ -100,25 +100,25 @@ class SavedList {
 
   formatSaved = (savedItem: Storage.SavedItem) => {
     const { name, created } = savedItem;
-    const listitem = createElement('li', {
-      className: 'saved-item',
+    const listitem = createElement("li", {
+      className: "saved-item",
       onclick: () => {
         this.clickCallback(savedItem);
         this.close();
       },
     });
 
-    const loadButton = createElement('span', {
-      className: 'saved-title-container',
+    const loadButton = createElement("span", {
+      className: "saved-title-container",
     });
 
-    const title = createElement('span', {
-      className: 'saved-title',
+    const title = createElement("span", {
+      className: "saved-title",
       innerHTML: name,
     });
 
-    const createdElem = createElement('span', {
-      className: 'saved-date-created',
+    const createdElem = createElement("span", {
+      className: "saved-date-created",
       innerHTML: prettyDate(created),
       title: new Date(created).toLocaleString(),
     });
@@ -126,9 +126,9 @@ class SavedList {
     loadButton.appendChild(title);
     loadButton.appendChild(createdElem);
 
-    const edit = createElement('button', {
-      className: 'edit-saved',
-      innerHTML: '✏️',
+    const edit = createElement("button", {
+      className: "edit-saved",
+      innerHTML: "✏️",
       onclick: (e) => {
         // button is inside of view button :D
         e.stopImmediatePropagation();
@@ -136,9 +136,9 @@ class SavedList {
       },
     });
 
-    const deleteItem = createElement('button', {
-      className: 'delete-saved',
-      innerHTML: '🗑',
+    const deleteItem = createElement("button", {
+      className: "delete-saved",
+      innerHTML: "🗑",
       onclick: (e) => {
         // button is inside of view button :D
         e.stopImmediatePropagation();
@@ -157,19 +157,19 @@ class SavedList {
     this.backdrop.parentNode?.removeChild(this.backdrop);
   }
 
-  onClick = (cb: this['clickCallback']): this => {
+  onClick = (cb: this["clickCallback"]): this => {
     this.clickCallback = cb;
 
     return this;
   };
 
-  onEdit = (cb: this['editCallback']): this => {
+  onEdit = (cb: this["editCallback"]): this => {
     this.editCallback = cb;
 
     return this;
   };
 
-  onDelete = (cb: this['deleteCallback']): this => {
+  onDelete = (cb: this["deleteCallback"]): this => {
     this.deleteCallback = cb;
 
     return this;
@@ -205,16 +205,16 @@ class SavedList {
     this.clearList();
 
     if (isEmpty) {
-      const emptyList = createElement('div', {
-        className: 'empty-list',
-        innerHTML: 'Nothing saved',
+      const emptyList = createElement("div", {
+        className: "empty-list",
+        innerHTML: "Nothing saved",
       });
 
       this.dialogBody.appendChild(emptyList);
     } else {
       // add list
-      const savedList = createElement('ul', {
-        className: 'saved-list',
+      const savedList = createElement("ul", {
+        className: "saved-list",
       });
 
       for (const item of savedItems) {

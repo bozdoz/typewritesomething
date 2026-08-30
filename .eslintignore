@@ -1,6 +1,0 @@
-node_modules
-dist
-rollup.config.js
-coverage/*
-src/sw.ts
-sw.js

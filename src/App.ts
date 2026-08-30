@@ -1,22 +1,22 @@
-import MultiAudio from './utils/MultiAudio';
-import NO_AUDIO from './helpers/NO_AUDIO';
-import { TypeWriter } from './Typewriter';
-import { container, textInput, cursorCanvas } from './helpers/getElements';
-import positionElem from './utils/positionElem';
-import getPositionFromEvent from './utils/getPositionFromEvent';
-import Vector from './utils/Vector';
-import Menu from './Menu';
-import addLongTouch from './utils/addLongTouch';
-import getAppMenu from './getAppMenu';
+import MultiAudio from "./utils/MultiAudio";
+import NO_AUDIO from "./helpers/NO_AUDIO";
+import { TypeWriter } from "./Typewriter";
+import { container, cursorCanvas, textInput } from "./helpers/getElements";
+import positionElem from "./utils/positionElem";
+import getPositionFromEvent from "./utils/getPositionFromEvent";
+import Vector from "./utils/Vector";
+import Menu from "./Menu";
+import addLongTouch from "./utils/addLongTouch";
+import getAppMenu from "./getAppMenu";
 
 const isIos = /iPad|iPhone|iPod/.test(navigator.platform);
 
 const keypressAudio = new MultiAudio(
-  '/static/audio/keypress.mp3',
+  "/static/audio/keypress.mp3",
   // ios struggles with playing multi-audio; needs to have at most 3
-  isIos ? 3 : 7
+  isIos ? 3 : 7,
 );
-const newlineAudio = new MultiAudio('/static/audio/return.mp3', 2);
+const newlineAudio = new MultiAudio("/static/audio/return.mp3", 2);
 const eventTarget = cursorCanvas;
 
 class App {
@@ -33,7 +33,7 @@ class App {
   reset() {
     this.running = true;
     this.typewriter.reset();
-    this.events('on');
+    this.events("on");
     this.emptyText();
     this.focusText();
   }
@@ -51,7 +51,7 @@ class App {
     this.running = false;
 
     // kill events
-    this.events('off');
+    this.events("off");
     this.removeMoveEvent();
 
     this.menu?.destroy();
@@ -59,13 +59,15 @@ class App {
     this.menu = null;
   }
 
-  events = (onoff = 'on') => {
+  events = (onoff = "on") => {
+    // deno-lint-ignore no-explicit-any
     const documentEvents: Record<string, any> = {
       mousedown: this.handleMouseDown,
       touchstart: this.handleTouchStart,
       mouseup: this.handleMouseUp,
       touchend: this.handleMouseUp,
     };
+    // deno-lint-ignore no-explicit-any
     const cursorEvents: Record<string, any> = {
       keydown: this.handleKeyDown,
       keyup: this.handleKeyUp,
@@ -73,7 +75,7 @@ class App {
       keypress: this.handleKeyPress,
     };
 
-    const method = onoff === 'on' ? 'addEventListener' : 'removeEventListener';
+    const method = onoff === "on" ? "addEventListener" : "removeEventListener";
 
     // eslint-disable-next-line no-restricted-syntax, guard-for-in
     for (const key in documentEvents) {
@@ -87,7 +89,7 @@ class App {
       textInput[method](key, fnc);
     }
 
-    if (onoff === 'on') {
+    if (onoff === "on") {
       // TODO: maybe move this event to Menu
       this.removeLongTouch = addLongTouch(eventTarget, (e) => {
         const position = getPositionFromEvent(e);
@@ -111,6 +113,7 @@ class App {
    */
   handleKeyDown = (e: KeyboardEvent) => {
     const isMeta = e.altKey || e.ctrlKey || e.metaKey;
+    // deno-lint-ignore no-explicit-any
     const noAudio: boolean | string = (NO_AUDIO as any)[e.which] || isMeta;
     const isPressed = this.pressedKeys[e.code];
 
@@ -121,7 +124,7 @@ class App {
     if (!noAudio) {
       this.pressedKeys[e.code] = true;
 
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         newlineAudio.play();
       } else {
         keypressAudio.play();
@@ -129,9 +132,9 @@ class App {
       return true;
     }
 
-    if (noAudio === 'TAB') {
+    if (noAudio === "TAB") {
       // refocus
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         textInput.focus();
       }, 10);
       e.preventDefault();
@@ -142,7 +145,7 @@ class App {
 
   handleKeyPress = (e: KeyboardEvent) => {
     const isMeta = e.altKey || e.ctrlKey || e.metaKey;
-    const disable = e.key === 'Tab' || e.key === 'Enter';
+    const disable = e.key === "Tab" || e.key === "Enter";
 
     if (disable || isMeta) {
       e.preventDefault();
@@ -157,7 +160,7 @@ class App {
    */
   handleKeyUp = (e: KeyboardEvent) => {
     const { key, code } = e;
-    const ignoreKey = key === 'Shift';
+    const ignoreKey = key === "Shift";
     const isMeta = e.altKey || e.ctrlKey || e.metaKey;
 
     if (ignoreKey) {
@@ -208,14 +211,14 @@ class App {
   handleMouseDown = (e: MouseEvent | TouchEvent) => {
     // TODO: add menu somehow somewhere
     // ignore right click
-    if ('button' in e && e.button === 2) return;
+    if ("button" in e && e.button === 2) return;
 
     // mousemove would be expensive, so we add it only after the mouse is down
-    this.mouseuptimeout = window.setTimeout(() => {
+    this.mouseuptimeout = globalThis.setTimeout(() => {
       this.mouseDownStartPos = getPositionFromEvent(e);
 
-      eventTarget.addEventListener('touchmove', this.handleMouseMove);
-      eventTarget.addEventListener('mousemove', this.handleMouseMove);
+      eventTarget.addEventListener("touchmove", this.handleMouseMove);
+      eventTarget.addEventListener("mousemove", this.handleMouseMove);
     }, this.mousemovedelay);
   };
 
@@ -263,8 +266,8 @@ class App {
    * @param {MouseEvent} e
    */
   handleMouseUp = (e: MouseEvent | TouchEvent) => {
-    const rightClick = 'button' in e && e.button === 2;
-    const stillTouches = 'touches' in e && e.touches.length > 0;
+    const rightClick = "button" in e && e.button === 2;
+    const stillTouches = "touches" in e && e.touches.length > 0;
 
     if (rightClick || stillTouches) return;
 
@@ -294,16 +297,16 @@ class App {
   };
 
   removeMoveEvent = () => {
-    window.clearTimeout(this.mouseuptimeout);
-    eventTarget.removeEventListener('touchmove', this.handleMouseMove);
-    eventTarget.removeEventListener('mousemove', this.handleMouseMove);
+    globalThis.clearTimeout(this.mouseuptimeout);
+    eventTarget.removeEventListener("touchmove", this.handleMouseMove);
+    eventTarget.removeEventListener("mousemove", this.handleMouseMove);
   };
 
   emptyText = () => {
     // sets value to empty first to adjust for cursor location
-    textInput.value = '';
+    textInput.value = "";
     // leaves a character to disable automatic ProperCase in mobile
-    textInput.value = '=';
+    textInput.value = "=";
   };
 
   focusText = () => {

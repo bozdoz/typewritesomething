@@ -1,13 +1,11 @@
 /**
- *
  * Inspired by a girl, Ms. Jayme Bergman
- *
  */
-import App from './App';
-import isDebugMode from './helpers/isDebugMode';
-import './tracking/analytics';
+import App from "./App";
+import isDebugMode from "./helpers/isDebugMode";
+import "./tracking/analytics";
 
-const splash = document.getElementById('splash')!;
+const splash = document.getElementById("splash")!;
 
 const startApp = (e: KeyboardEvent | MouseEvent | TouchEvent): void => {
   if (e.altKey || e.ctrlKey || e.metaKey) {
@@ -15,10 +13,10 @@ const startApp = (e: KeyboardEvent | MouseEvent | TouchEvent): void => {
     return;
   }
 
-  splash.classList.add('hide');
+  splash.classList.add("hide");
 
-  splash.removeEventListener('click', startApp);
-  splash.removeEventListener('keyup', startApp);
+  splash.removeEventListener("click", startApp);
+  splash.removeEventListener("keyup", startApp);
 
   const app = new App();
 
@@ -30,42 +28,42 @@ const startApp = (e: KeyboardEvent | MouseEvent | TouchEvent): void => {
 };
 
 const onload = (): void => {
-  if (window.location.hash) {
-    window.location.hash = '';
+  if (globalThis.location.hash) {
+    globalThis.location.hash = "";
   }
 
   splash.focus();
 
-  splash.addEventListener('click', startApp);
-  splash.addEventListener('keyup', startApp);
+  splash.addEventListener("click", startApp);
+  splash.addEventListener("keyup", startApp);
 
-  window.removeEventListener('load', onload);
+  globalThis.removeEventListener("load", onload);
 };
 
 /**
  * basic app handlers
  */
-window.addEventListener('load', onload);
+globalThis.addEventListener("load", onload);
 
 // Register service worker to control making site work offline
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
   navigator.serviceWorker
-    .register('/sw.js')
+    .register("/sw.js")
     .then((reg) => {
       if (reg.installing) {
         // eslint-disable-next-line no-console
-        console.log('Service worker installing');
+        console.log("Service worker installing");
       } else if (reg.waiting) {
         // eslint-disable-next-line no-console
-        console.log('Service worker installed');
+        console.log("Service worker installed");
       } else if (reg.active) {
         // eslint-disable-next-line no-console
-        console.log('Service worker active');
+        console.log("Service worker active");
       }
     })
     .catch((e): void => {
       // eslint-disable-next-line no-console
-      console.error('Service Worker failed');
+      console.error("Service Worker failed");
       // eslint-disable-next-line no-console
       console.error(e);
     });
@@ -74,5 +72,5 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
 // TODO: add unit tests for debug mode
 // Mostly just debugs CSS for text-input
 if (isDebugMode()) {
-  document.body.classList.add('debug');
+  document.body.classList.add("debug");
 }

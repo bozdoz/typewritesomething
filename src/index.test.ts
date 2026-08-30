@@ -1,4 +1,5 @@
-import { fireEvent } from '@testing-library/dom';
+// @deno-types=npm:@types/jest
+import { fireEvent } from "@testing-library/dom";
 
 const appStart = jest.fn();
 const appFocus = jest.fn();
@@ -14,21 +15,21 @@ function mockApp(this: App) {
   this.focusText = appFocus;
 }
 
-jest.mock('./App', () => ({
+jest.mock("./App", () => ({
   default: mockApp,
 }));
 
-describe('index', () => {
+describe("index", () => {
   let splash: HTMLDivElement;
-  const loadEvent = new Event('load');
+  const loadEvent = new Event("load");
 
   beforeEach(() => {
     jest.clearAllMocks();
     // make sure require('./index') fires again
     jest.resetModules();
 
-    splash = document.createElement('div');
-    splash.id = 'splash';
+    splash = document.createElement("div");
+    splash.id = "splash";
     splash.tabIndex = 0;
 
     // (re) initialize html
@@ -38,29 +39,29 @@ describe('index', () => {
     document.body.append(splash);
 
     // add js
-    // eslint-disable-next-line global-require
-    require('./index');
+    import("./index.ts");
   });
 
-  it('gives focus to splash on load', () => {
+  it("gives focus to splash on load", () => {
     expect(document.activeElement).toBe(document.body);
-    window.dispatchEvent(loadEvent);
+    globalThis.dispatchEvent(loadEvent);
     expect(document.activeElement).toBe(splash);
   });
 
-  it('wipes location hash on load', () => {
-    const windowSpy = jest.spyOn(global, 'window', 'get');
-    let hash = '';
+  it("wipes location hash on load", () => {
+    const windowSpy = jest.spyOn(globalThis, "window", "get");
+    let hash = "";
 
     windowSpy.mockImplementationOnce(() => {
+      // deno-lint-ignore no-explicit-any
       const mockWindow: any = {
         ...window,
         location: {
-          ...window.location,
+          ...globalThis.location,
         },
       };
 
-      Object.defineProperty(mockWindow.location, 'hash', {
+      Object.defineProperty(mockWindow.location, "hash", {
         get() {
           return hash;
         },
@@ -71,15 +72,15 @@ describe('index', () => {
       return mockWindow;
     });
 
-    window.location.hash = 'asdf';
+    globalThis.location.hash = "asdf";
 
-    window.dispatchEvent(loadEvent);
+    globalThis.dispatchEvent(loadEvent);
 
-    expect(window.location.hash).toBe('');
+    expect(globalThis.location.hash).toBe("");
   });
 
-  it('starts app after keyup on splash', () => {
-    window.dispatchEvent(loadEvent);
+  it("starts app after keyup on splash", () => {
+    globalThis.dispatchEvent(loadEvent);
 
     fireEvent.keyUp(splash);
 
@@ -87,8 +88,8 @@ describe('index', () => {
     expect(appFocus).toHaveBeenCalledTimes(1);
   });
 
-  it('starts app after click on splash', () => {
-    window.dispatchEvent(loadEvent);
+  it("starts app after click on splash", () => {
+    globalThis.dispatchEvent(loadEvent);
 
     fireEvent.click(splash);
 
@@ -96,18 +97,18 @@ describe('index', () => {
     expect(appFocus).toHaveBeenCalledTimes(1);
   });
 
-  it('hides the splash after click', () => {
-    window.dispatchEvent(loadEvent);
+  it("hides the splash after click", () => {
+    globalThis.dispatchEvent(loadEvent);
 
     fireEvent.click(splash);
 
-    expect(splash.classList.contains('hide')).toBe(true);
+    expect(splash.classList.contains("hide")).toBe(true);
   });
 
-  it('does not start app if ctrl key pressed', () => {
-    window.dispatchEvent(loadEvent);
+  it("does not start app if ctrl key pressed", () => {
+    globalThis.dispatchEvent(loadEvent);
 
-    const keyUp = new KeyboardEvent('keyup', {
+    const keyUp = new KeyboardEvent("keyup", {
       ctrlKey: true,
     });
 
@@ -117,8 +118,8 @@ describe('index', () => {
     expect(appFocus).toHaveBeenCalledTimes(0);
   });
 
-  it('does not start app twice', () => {
-    window.dispatchEvent(loadEvent);
+  it("does not start app twice", () => {
+    globalThis.dispatchEvent(loadEvent);
 
     fireEvent.click(splash);
     fireEvent.click(splash);

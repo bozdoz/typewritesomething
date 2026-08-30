@@ -1,17 +1,17 @@
-import Vector from './utils/Vector';
-import { Cursor } from './Cursor';
-import { Character } from './Character';
-import { container, cursorCtx, textCtx } from './helpers/getElements';
-import debounce from './utils/debounce';
-import positionElem from './utils/positionElem';
+import Vector from "./utils/Vector";
+import { Cursor } from "./Cursor";
+import { Character } from "./Character";
+import { container, cursorCtx, textCtx } from "./helpers/getElements";
+import debounce from "./utils/debounce";
+import positionElem from "./utils/positionElem";
 
 const FONT_SIZE = 26;
-const TEXT_COLOR = '#150904';
-const CURSOR_COLOR = '#4787ea';
+const TEXT_COLOR = "#150904";
+const CURSOR_COLOR = "#4787ea";
 const GLOBAL_ALPHA = 0.72;
 const letterSize = parseInt(
-  String(Math.min(FONT_SIZE, window.innerWidth / 17)),
-  10
+  String(Math.min(FONT_SIZE, globalThis.innerWidth / 17)),
+  10,
 );
 
 interface TypeWriterClass {
@@ -48,7 +48,7 @@ export class TypeWriter implements TypeWriterClass {
     TypeWriter._instance = this;
 
     // add events
-    window.addEventListener('resize', this.debouncedReposition);
+    globalThis.addEventListener("resize", this.debouncedReposition);
   }
 
   addCharacter = (_chars: string, _x?: number, _y?: number): void => {
@@ -93,7 +93,7 @@ export class TypeWriter implements TypeWriterClass {
 
     // reset contexts, because resizing wipes them
     textCtx.font = `${letterSize}px Special Elite, serif`;
-    textCtx.textBaseline = 'top';
+    textCtx.textBaseline = "top";
     textCtx.fillStyle = TEXT_COLOR;
 
     cursorCtx.fillStyle = CURSOR_COLOR;
@@ -126,7 +126,7 @@ export class TypeWriter implements TypeWriterClass {
     this.cursor.reset();
     this.canvasOffset = new Vector(0, 0);
     this.containerScale = 1;
-    container.setAttribute('style', '');
+    container.setAttribute("style", "");
 
     this.reposition();
     this.cursor.draw();
@@ -135,13 +135,13 @@ export class TypeWriter implements TypeWriterClass {
   export() {
     // just save x,y,str and re-instantiate classes in import
     return JSON.stringify(
-      this.chars.map(({ x, y, s }: Character) => ({ x, y, s }))
+      this.chars.map(({ x, y, s }: Character) => ({ x, y, s })),
     );
   }
 
   import(str: string) {
     try {
-      const chars: Pick<Character, 'x' | 'y' | 's'>[] = JSON.parse(str);
+      const chars: Pick<Character, "x" | "y" | "s">[] = JSON.parse(str);
 
       if (!Array.isArray(chars)) {
         return;
@@ -152,9 +152,9 @@ export class TypeWriter implements TypeWriterClass {
       for (const { s, x, y } of chars) {
         this.addCharacter(s, x, y);
       }
-    } catch (e) {
+    } catch (_) {
       // eslint-disable-next-line no-console
-      console.error('failed to import');
+      console.error("failed to import");
     }
   }
 }

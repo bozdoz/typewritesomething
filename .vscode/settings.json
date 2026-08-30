@@ -3,5 +3,9 @@
     "javascript",
     "html",
   ],
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "deno.enable": false,
+  "deno.enablePaths": [
+    "./build.ts"
+  ]
 }

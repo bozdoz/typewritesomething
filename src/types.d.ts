@@ -1,7 +1,6 @@
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
-  T
->() => T extends Y ? 1 : 2
-  ? A
+  T,
+>() => T extends Y ? 1 : 2 ? A
   : B;
 
 type WritableKeys<T> = {
@@ -14,4 +13,5 @@ type WritableKeys<T> = {
 
 type Writable<T> = Pick<T, WritableKeys<T>>;
 
+// deno-lint-ignore no-explicit-any
 type AnyFunction = (...args: any[]) => void;

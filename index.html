@@ -75,7 +75,6 @@
       crossorigin
     />
     <link rel="stylesheet" href="/static/style.css" />
-    <script async defer src="/dist/main.js"></script>
   </head>
 
   <body>
@@ -90,7 +89,7 @@
         <div id="lp"><input type="text" /><input type="password" /></div>
         <script type="text/javascript">
           setTimeout(function () {
-            document.getElementById('lp').style.display = 'none';
+            document.getElementById("lp").style.display = "none";
           }, 75);
         </script>
 
@@ -115,5 +114,6 @@
       src="/static/audio/keypress.mp3"
     ></audio>
     <audio preload="auto" id="return" src="/static/audio/return.mp3"></audio>
+    <script async defer src="/dist/index.js"></script>
   </body>
 </html>

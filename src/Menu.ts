@@ -1,7 +1,7 @@
-import { cursorCanvas, textInput } from './helpers/getElements';
-import createElement from './utils/createElement';
-import getPositionFromEvent from './utils/getPositionFromEvent';
-import positionElem from './utils/positionElem';
+import { cursorCanvas, textInput } from "./helpers/getElements";
+import createElement from "./utils/createElement";
+import getPositionFromEvent from "./utils/getPositionFromEvent";
+import positionElem from "./utils/positionElem";
 
 interface MenuItem {
   callback?: AnyFunction;
@@ -9,74 +9,75 @@ interface MenuItem {
 }
 
 const isAnchorElement = (a: HTMLElement): a is HTMLAnchorElement =>
-  a.tagName === 'A';
+  a.tagName === "A";
 
 const eventTarget = cursorCanvas;
 
 class Menu {
-  menu = createElement('div', {
-    className: 'popup menu',
-    id: 'menu',
+  menu = createElement("div", {
+    className: "popup menu",
+    id: "menu",
   });
 
-  menuBackdrop = createElement('div', {
-    className: 'backdrop menu-backdrop',
-    id: 'menu-backdrop',
+  menuBackdrop = createElement("div", {
+    className: "backdrop menu-backdrop",
+    id: "menu-backdrop",
   });
 
   constructor() {
-    this.events('on');
+    this.events("on");
 
-    this.menu.setAttribute('role', 'list');
+    this.menu.setAttribute("role", "list");
     this.menu.tabIndex = -1;
 
     this.menuBackdrop.appendChild(this.menu);
   }
 
   destroy() {
-    this.events('off');
+    this.events("off");
     this.menuBackdrop.parentNode?.removeChild(this.menuBackdrop);
   }
 
   addMenuItem(innerHTML: string, { callback, href }: MenuItem = {}) {
-    const tagname = href ? 'a' : 'div';
+    const tagname = href ? "a" : "div";
     const menuItem = createElement(tagname, {
       innerHTML,
-      className: 'menu-item',
+      className: "menu-item",
     });
 
     if (isAnchorElement(menuItem)) {
-      menuItem.target = '_blank';
+      menuItem.target = "_blank";
       menuItem.href = href!;
     }
 
     if (callback) {
-      menuItem.addEventListener('click', callback);
-      menuItem.addEventListener('keydown', (e: any) => {
-        if (e.key === 'Enter') {
+      menuItem.addEventListener("click", callback);
+      // deno-lint-ignore no-explicit-any
+      menuItem.addEventListener("keydown", (e: any) => {
+        if (e.key === "Enter") {
           callback();
         }
       });
     }
 
     if (callback || href) {
-      menuItem.classList.add('clickable');
+      menuItem.classList.add("clickable");
       menuItem.tabIndex = 0;
     }
 
-    menuItem.setAttribute('role', 'listitem');
+    menuItem.setAttribute("role", "listitem");
 
     this.menu.appendChild(menuItem);
   }
 
   addDivider() {
-    const hr = createElement('hr');
+    const hr = createElement("hr");
 
     this.menu.appendChild(hr);
   }
 
-  events(onoff = 'on') {
-    const method = onoff === 'on' ? 'addEventListener' : 'removeEventListener';
+  events(onoff = "on") {
+    const method = onoff === "on" ? "addEventListener" : "removeEventListener";
 
     const events: Record<string, AnyFunction> = {
       contextmenu: this.handleContextMenu,
@@ -99,15 +100,15 @@ class Menu {
 
     this.openMenu({ x, y });
 
-    window.gtag?.('event', 'menu:open', {
-      event_category: 'menu',
+    globalThis.gtag?.("event", "menu:open", {
+      event_category: "menu",
     });
   };
 
   openMenu(position: { x: number; y: number }) {
     if (this.menuBackdrop.parentNode == null) {
       document.body.appendChild(this.menuBackdrop);
-      document.body.addEventListener('click', this.handleClose);
+      document.body.addEventListener("click", this.handleClose);
     }
 
     positionElem(this.menu, position);
@@ -132,20 +133,20 @@ class Menu {
     }
 
     // don't listen for more close events
-    document.body.removeEventListener('click', this.handleClose);
+    document.body.removeEventListener("click", this.handleClose);
 
     // actually remove things after exit animation
     const onExit = (e: AnimationEvent) => {
       if (e.target !== elem) return;
-      elem.removeEventListener('animationend', onExit);
-      elem.classList.remove('exit');
+      elem.removeEventListener("animationend", onExit);
+      elem.classList.remove("exit");
       elem.parentNode?.removeChild(elem);
     };
 
-    elem.addEventListener('animationend', onExit);
+    elem.addEventListener("animationend", onExit);
 
     // trigger exit animation
-    elem.classList.add('exit');
+    elem.classList.add("exit");
   }
 
   handleClose = ({ target }: MouseEvent) => {
