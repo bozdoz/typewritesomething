@@ -18,6 +18,13 @@ const keypressAudio = new MultiAudio(
 );
 const newlineAudio = new MultiAudio('/static/audio/return.mp3', 2);
 const eventTarget = cursorCanvas;
+const WHEEL_ZOOM_INTENSITY = 0.002;
+
+interface PinchState {
+  startDistance: number;
+  startScale: number;
+  worldAnchor: Vector;
+}
 
 class App {
   mousemovedelay = 150;
@@ -65,6 +72,7 @@ class App {
       touchstart: this.handleTouchStart,
       mouseup: this.handleMouseUp,
       touchend: this.handleMouseUp,
+      touchcancel: this.handleTouchCancel,
     };
     const cursorEvents: Record<string, any> = {
       keydown: this.handleKeyDown,
@@ -79,6 +87,18 @@ class App {
     for (const key in documentEvents) {
       const fnc = documentEvents[key];
       eventTarget[method](key, fnc);
+    }
+
+    if (onoff === 'on') {
+      eventTarget.addEventListener('touchmove', this.handleTouchMove, {
+        passive: false,
+      });
+      eventTarget.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
+    } else {
+      eventTarget.removeEventListener('touchmove', this.handleTouchMove);
+      eventTarget.removeEventListener('wheel', this.handleWheel);
     }
 
     // eslint-disable-next-line no-restricted-syntax, guard-for-in
@@ -201,11 +221,19 @@ class App {
 
   mouseDownStartPos: Vector | null = null;
 
+  mouseDragOffset = new Vector(0, 0);
+
+  pinchState: PinchState | null = null;
+
+  suppressTouchEnd = false;
+
   /**
    * handleMouseDown
    * @param {MouseEvent} e
    */
   handleMouseDown = (e: MouseEvent | TouchEvent) => {
+    if (this.pinchState) return;
+
     // TODO: add menu somehow somewhere
     // ignore right click
     if ('button' in e && e.button === 2) return;
@@ -213,8 +241,8 @@ class App {
     // mousemove would be expensive, so we add it only after the mouse is down
     this.mouseuptimeout = window.setTimeout(() => {
       this.mouseDownStartPos = getPositionFromEvent(e);
+      this.mouseDragOffset = new Vector(0, 0);
 
-      eventTarget.addEventListener('touchmove', this.handleMouseMove);
       eventTarget.addEventListener('mousemove', this.handleMouseMove);
     }, this.mousemovedelay);
   };
@@ -227,14 +255,100 @@ class App {
     e.preventDefault();
     e.stopPropagation();
 
-    if (e.touches && e.touches.length === 2) {
-      // todo: work on zooming
-      // (https://codepen.io/bozdoz/pen/xxEmJyx?editors=0011)
-
+    if (e.touches.length >= 2) {
+      this.startPinch(e);
       return true;
     }
 
     return this.handleMouseDown(e);
+  };
+
+  getTouchMidpoint = (touches: TouchList): Vector => {
+    const first = touches[0];
+    const second = touches[1];
+
+    return new Vector(
+      (first.clientX + second.clientX) / 2,
+      (first.clientY + second.clientY) / 2
+    );
+  };
+
+  getTouchDistance = (touches: TouchList): number => {
+    const first = touches[0];
+    const second = touches[1];
+    const x = second.clientX - first.clientX;
+    const y = second.clientY - first.clientY;
+
+    return Math.max(Math.sqrt(x * x + y * y), 1);
+  };
+
+  startPinch = (e: TouchEvent) => {
+    const midpoint = this.getTouchMidpoint(e.touches);
+    const hadActiveDrag = this.mouseDownStartPos !== null;
+
+    this.removeMoveEvent();
+    positionElem(container, { x: 0, y: 0 });
+
+    if (hadActiveDrag) {
+      this.typewriter.panBy(this.mouseDragOffset);
+    }
+
+    this.mouseDownStartPos = null;
+    this.mouseDragOffset = new Vector(0, 0);
+    this.pinchState = {
+      startDistance: this.getTouchDistance(e.touches),
+      startScale: this.typewriter.viewport.scale,
+      worldAnchor: this.typewriter.screenToWorld(midpoint),
+    };
+    this.suppressTouchEnd = true;
+  };
+
+  handleTouchMove = (e: TouchEvent) => {
+    if (this.pinchState) {
+      this.handlePinchMove(e);
+    } else if (this.mouseDownStartPos) {
+      this.handleMouseMove(e);
+    }
+  };
+
+  handlePinchMove = (e: TouchEvent) => {
+    if (!this.pinchState || e.touches.length < 2) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const midpoint = this.getTouchMidpoint(e.touches);
+    const distance = this.getTouchDistance(e.touches);
+    const scale =
+      this.pinchState.startScale * (distance / this.pinchState.startDistance);
+
+    this.typewriter.setScaleAt(midpoint, this.pinchState.worldAnchor, scale);
+  };
+
+  endPinch = () => {
+    this.pinchState = null;
+    this.mouseDownStartPos = null;
+    this.removeMoveEvent();
+    positionElem(container, { x: 0, y: 0 });
+    this.typewriter.render();
+  };
+
+  handleTouchCancel = () => {
+    this.endPinch();
+    this.suppressTouchEnd = false;
+  };
+
+  handleWheel = (e: WheelEvent) => {
+    if (!e.metaKey && !e.ctrlKey) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const deltaMultiplier = e.deltaMode === 1 ? 16 : window.innerHeight;
+    const delta = e.deltaMode === 0 ? e.deltaY : e.deltaY * deltaMultiplier;
+    const factor = Math.exp(-delta * WHEEL_ZOOM_INTENSITY);
+
+    this.typewriter.zoomAt(new Vector(e.clientX, e.clientY), factor);
   };
 
   /**
@@ -251,6 +365,7 @@ class App {
     }
 
     const _position = getPositionFromEvent(e)._subtract(this.mouseDownStartPos);
+    this.mouseDragOffset = _position;
 
     // fake canvas moving by cheaply altering css
     positionElem(container, _position);
@@ -266,6 +381,18 @@ class App {
     const rightClick = 'button' in e && e.button === 2;
     const stillTouches = 'touches' in e && e.touches.length > 0;
 
+    if (this.pinchState) {
+      this.endPinch();
+      return;
+    }
+
+    if ('touches' in e && this.suppressTouchEnd) {
+      if (!stillTouches) {
+        this.suppressTouchEnd = false;
+      }
+      return;
+    }
+
     if (rightClick || stillTouches) return;
 
     this.removeMoveEvent();
@@ -278,6 +405,7 @@ class App {
 
       this.typewriter.reposition(position);
       this.mouseDownStartPos = null;
+      this.mouseDragOffset = new Vector(0, 0);
     } else {
       // act as if it were just a click handler
       this.updateCursor(position);
@@ -289,13 +417,12 @@ class App {
    * @param {Vector} position
    */
   updateCursor = (position: Vector) => {
-    this.typewriter.cursor.moveToClick(position);
+    this.typewriter.cursor.moveToClick(this.typewriter.screenToWorld(position));
     this.focusText();
   };
 
   removeMoveEvent = () => {
     window.clearTimeout(this.mouseuptimeout);
-    eventTarget.removeEventListener('touchmove', this.handleMouseMove);
     eventTarget.removeEventListener('mousemove', this.handleMouseMove);
   };
 

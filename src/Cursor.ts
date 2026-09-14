@@ -1,9 +1,9 @@
 import { cursorCtx, textInput } from './helpers/getElements';
 import positionElem from './utils/positionElem';
 import Vector from './utils/Vector';
+import Viewport from './utils/Viewport';
 
 const FONT_SIZE = 26;
-const containerScale = 1;
 const GLOBAL_ALPHA = 0.72;
 const letterSize = parseInt(
   String(Math.min(FONT_SIZE, window.innerWidth / 17)),
@@ -26,6 +26,8 @@ textInput.style.height = `${cursorHeight}px`;
 const initialPosVec = paddingVec;
 
 export class Cursor {
+  viewport: Viewport;
+
   _cursorTimeout?: number;
 
   _raf?: number;
@@ -36,12 +38,16 @@ export class Cursor {
 
   position = initialPosVec;
 
+  constructor(viewport = new Viewport()) {
+    this.viewport = viewport;
+  }
+
   reset = () => {
     this.update(initialPosVec);
   };
 
   clear = () => {
-    const _pos = this.position.subtract(1).divideBy(containerScale);
+    const _pos = this.position.subtract(1);
 
     // rect appears to have a border on the bottom-right
     const width = cursorWidth + 4;
@@ -53,26 +59,35 @@ export class Cursor {
    * @param {Vector} vec
    */
   update = (vec: Vector) => {
-    // move the "hidden" input
-    positionElem(textInput, {
-      x: Math.min(vec.x, window.innerWidth - cursorWidth),
-      y: Math.min(vec.y, window.innerHeight),
-    });
-
     // clear the canvas
     this.clear();
 
     // update the position
     this.position = vec;
 
+    this.positionInput();
+
     // draw canvas at new position
     this.draw();
   };
 
-  _draw = () => {
-    const _pos = this.position.divideBy(containerScale);
+  positionInput = () => {
+    const screenPosition = this.viewport.worldToScreen(this.position);
 
-    cursorCtx.fillRect(_pos.x, _pos.y, cursorWidth, cursorHeight);
+    // move the "hidden" input
+    positionElem(textInput, {
+      x: Math.min(screenPosition.x, window.innerWidth - cursorWidth),
+      y: Math.min(screenPosition.y, window.innerHeight),
+    });
+  };
+
+  _draw = () => {
+    cursorCtx.fillRect(
+      this.position.x,
+      this.position.y,
+      cursorWidth,
+      cursorHeight
+    );
   };
 
   draw = () => {
@@ -87,7 +102,7 @@ export class Cursor {
   };
 
   nudge = (vec: Vector) => {
-    this.update(this.position.add(vec.multiplyBy(containerScale)));
+    this.update(this.position.add(vec));
   };
 
   moveleft = () => {

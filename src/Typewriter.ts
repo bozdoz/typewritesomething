@@ -1,8 +1,9 @@
-import Vector from './utils/Vector';
 import { Cursor } from './Cursor';
 import { Character } from './Character';
 import { container, cursorCtx, textCtx } from './helpers/getElements';
 import debounce from './utils/debounce';
+import Vector from './utils/Vector';
+import Viewport from './utils/Viewport';
 import positionElem from './utils/positionElem';
 
 const FONT_SIZE = 26;
@@ -15,15 +16,24 @@ const letterSize = parseInt(
 );
 
 interface TypeWriterClass {
-  canvasOffset: Vector;
-  containerScale: number;
+  viewport: Viewport;
   chars: Character[];
   addCharacter(_chars: string): void;
+  appendCharacters(_chars: string): Character[];
+  drawCharacters(chars: Character[]): void;
   redraw(): void;
-  resetCanvases(): void;
-  reposition(vec?: Vector | UIEvent): void;
+  render(): void;
+  applyViewportTransform(ctx: CanvasRenderingContext2D): void;
+  resetCanvases(render?: boolean): void;
+  cancelScheduledRender(): void;
+  scheduleRender(): void;
+  reposition(vec?: Vector | UIEvent, render?: boolean): void;
+  panBy(vec: Vector): void;
+  zoomAt(point: Vector, factor: number): void;
+  setScaleAt(point: Vector, worldPoint: Vector, scale: number): void;
+  screenToWorld(point: Vector): Vector;
   debouncedReposition(this: unknown, vec?: Vector | UIEvent): void;
-  reset(): void;
+  reset(render?: boolean): void;
   cursor: Cursor;
   export(): string;
   import(str: string): void;
@@ -32,13 +42,13 @@ interface TypeWriterClass {
 export class TypeWriter implements TypeWriterClass {
   static _instance: TypeWriterClass;
 
-  canvasOffset = new Vector(0, 0);
-
-  containerScale = 1;
+  viewport = new Viewport();
 
   chars: Character[] = [];
 
-  cursor = new Cursor();
+  cursor = new Cursor(this.viewport);
+
+  _renderFrame?: number;
 
   constructor() {
     if (TypeWriter._instance) {
@@ -54,82 +64,191 @@ export class TypeWriter implements TypeWriterClass {
   addCharacter = (_chars: string, _x?: number, _y?: number): void => {
     // manually set position and update cursor
     if (_x !== undefined && _y !== undefined) {
-      this.chars.push(new Character(this, _chars, _x, _y));
+      this.chars.push(new Character(_chars, _x, _y));
       this.cursor.update(new Vector(_x, _y));
+      this.render();
       return;
     }
+
+    // A viewport update may be waiting for the next animation frame. Flush
+    // it before drawing new text so the existing and new characters share a
+    // transform.
+    if (this._renderFrame !== undefined) {
+      this.render();
+    }
+
+    this.drawCharacters(this.appendCharacters(_chars));
+  };
+
+  appendCharacters = (_chars: string): Character[] => {
+    const newChars: Character[] = [];
+
     // iterate characters and move cursor right
     for (let i = 0, len = _chars.length; i < len; i += 1) {
       const {
         position: { x, y },
       } = this.cursor;
       const char = _chars[i];
+      const character = new Character(char, x, y);
 
-      this.chars.push(new Character(this, char, x, y));
+      this.chars.push(character);
+      newChars.push(character);
       this.cursor.moveright();
     }
+
+    return newChars;
+  };
+
+  drawCharacters = (chars: Character[]): void => {
+    if (chars.length === 0) return;
+
+    this.applyViewportTransform(textCtx);
+    textCtx.globalAlpha = GLOBAL_ALPHA;
+    textCtx.font = `${letterSize}px Special Elite, serif`;
+    textCtx.textBaseline = 'top';
+    textCtx.fillStyle = TEXT_COLOR;
+
+    chars.forEach((char) => char.draw());
   };
 
   redraw = (): void => {
     this.chars.forEach((char) => char.draw());
   };
 
-  resetCanvases = (): void => {
+  applyViewportTransform = (ctx: CanvasRenderingContext2D): void => {
+    const { devicePixelRatio = 1 } = window;
+    const { offset, scale } = this.viewport;
+
+    ctx.setTransform(
+      devicePixelRatio * scale,
+      0,
+      0,
+      devicePixelRatio * scale,
+      devicePixelRatio * offset.x,
+      devicePixelRatio * offset.y
+    );
+  };
+
+  resetCanvases = (render = true): void => {
     [textCtx, cursorCtx].forEach((ctx) => {
       const { canvas } = ctx;
       const { devicePixelRatio = 1, innerWidth, innerHeight } = window;
-
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       canvas.width = innerWidth * devicePixelRatio;
       canvas.height = innerHeight * devicePixelRatio;
       canvas.style.width = `${innerWidth}px`;
       canvas.style.height = `${innerHeight}px`;
+    });
 
-      ctx.scale(devicePixelRatio, devicePixelRatio);
+    if (render) {
+      this.render();
+    }
+  };
 
+  cancelScheduledRender = (): void => {
+    if (this._renderFrame === undefined) return;
+
+    // requestAnimationFrame is unavailable in jsdom and other non-visual
+    // environments, so scheduleRender falls back to setTimeout there.
+    if (typeof window.cancelAnimationFrame === 'function') {
+      window.cancelAnimationFrame(this._renderFrame);
+    } else {
+      window.clearTimeout(this._renderFrame);
+    }
+
+    this._renderFrame = undefined;
+  };
+
+  scheduleRender = (): void => {
+    if (this._renderFrame !== undefined) return;
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      this._renderFrame = window.requestAnimationFrame(() => {
+        this._renderFrame = undefined;
+        this.render();
+      });
+      return;
+    }
+
+    // jsdom does not provide requestAnimationFrame unless it is configured
+    // as a visual browser. Keep the same coalescing semantics in tests.
+    this._renderFrame = window.setTimeout(() => {
+      this._renderFrame = undefined;
+      this.render();
+    }, 0);
+  };
+
+  render = (): void => {
+    this.cancelScheduledRender();
+
+    [textCtx, cursorCtx].forEach((ctx) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      this.applyViewportTransform(ctx);
       ctx.globalAlpha = GLOBAL_ALPHA;
     });
 
-    // reset contexts, because resizing wipes them
     textCtx.font = `${letterSize}px Special Elite, serif`;
     textCtx.textBaseline = 'top';
     textCtx.fillStyle = TEXT_COLOR;
 
     cursorCtx.fillStyle = CURSOR_COLOR;
-    cursorCtx.scale(this.containerScale, this.containerScale);
+
+    this.redraw();
+    this.cursor.positionInput();
+    this.cursor.draw();
   };
 
   /**
-   * offset characters for given x/y
-   * useful for moving/dragging
-   * useful for redrawing (b/c needs resetting)
+   * Pan the viewport by a screen-space vector.
    */
-  reposition = (vec?: Vector | UIEvent): void => {
+  panBy = (vec: Vector): void => {
+    this.viewport.panBy(vec);
+    this.scheduleRender();
+  };
+
+  /**
+   * Zoom around a screen-space point while keeping that point anchored.
+   */
+  zoomAt = (point: Vector, factor: number): void => {
+    this.viewport.zoomAt(point, factor);
+    this.scheduleRender();
+  };
+
+  setScaleAt = (point: Vector, worldPoint: Vector, scale: number): void => {
+    this.viewport.setScaleAtWorld(point, worldPoint, scale);
+    this.scheduleRender();
+  };
+
+  screenToWorld = (point: Vector): Vector => this.viewport.screenToWorld(point);
+
+  /**
+   * Re-render after panning or resizing. A Vector is interpreted as a
+   * screen-space pan; a UIEvent indicates that the canvases need resizing.
+   */
+  reposition = (vec?: Vector | UIEvent, render = true): void => {
     if (vec instanceof Vector) {
-      this.canvasOffset._add(vec);
+      this.viewport.panBy(vec);
     }
 
     positionElem(container, { x: 0, y: 0 });
 
-    this.resetCanvases();
-    this.redraw();
+    this.resetCanvases(render);
   };
 
   debouncedReposition = debounce(this.reposition, 100);
 
   /**
-   * back to original blank canvas
+   * Back to the original blank canvas and default viewport.
    */
-  reset = () => {
+  reset = (render = true) => {
+    this.cancelScheduledRender();
     this.chars = [];
+    this.viewport.reset();
     this.cursor.reset();
-    this.canvasOffset = new Vector(0, 0);
-    this.containerScale = 1;
     container.setAttribute('style', '');
 
-    this.reposition();
-    this.cursor.draw();
+    this.reposition(undefined, render);
   };
 
   export() {
@@ -147,11 +266,18 @@ export class TypeWriter implements TypeWriterClass {
         return;
       }
 
-      this.reset();
+      this.reset(false);
+      // Restore saved coordinates in one batch. Calling addCharacter here
+      // would perform a full scene render for every saved character.
+      this.chars = chars.map(({ s, x, y }) => new Character(s, x, y));
 
-      for (const { s, x, y } of chars) {
-        this.addCharacter(s, x, y);
+      // Keep the cursor at the saved position without appending a new char.
+      const lastChar = chars[chars.length - 1];
+      if (lastChar) {
+        this.cursor.position = new Vector(lastChar.x, lastChar.y);
       }
+
+      this.render();
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('failed to import');

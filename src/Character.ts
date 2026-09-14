@@ -13,11 +13,6 @@ function randMargin(num: number, margin: number) {
   return value;
 }
 
-type CharacterTypewriter = Pick<
-  import('./Typewriter').TypeWriter,
-  'canvasOffset'
->;
-
 export class Character extends Vector {
   s: string;
 
@@ -25,37 +20,19 @@ export class Character extends Vector {
 
   alpha: number;
 
-  typewriter: CharacterTypewriter;
-
-  constructor(
-    typewriter: CharacterTypewriter,
-    charStr: string,
-    _x: number,
-    _y: number
-  ) {
+  constructor(charStr: string, _x: number, _y: number) {
     // save vector position
     super(randMargin(_x, TRANSLATE_MARGIN), randMargin(_y, TRANSLATE_MARGIN));
 
     this.s = charStr;
     this.rotate = randMargin(0, ROTATE_MARGIN);
     this.alpha = randMargin(GLOBAL_ALPHA, ALPHA_MARGIN);
-    this.typewriter = typewriter;
-
-    // save inverse of current typewriter offsets
-    // useful for applying future changing offsets
-    // in redraw functions
-    this._subtract(typewriter.canvasOffset);
-
-    this.draw();
   }
 
   draw = () => {
-    // apply current typewriter offsets
-    const vec = this.add(this.typewriter.canvasOffset);
-
     if (textCtx) {
       textCtx.save();
-      textCtx.translate(vec.x, vec.y);
+      textCtx.translate(this.x, this.y);
       textCtx.rotate(this.rotate);
       textCtx.globalAlpha = this.alpha;
       textCtx.fillText(this.s, 0, 0);
